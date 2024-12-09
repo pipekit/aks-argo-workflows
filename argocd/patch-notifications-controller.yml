@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: argocd-applicationset-controller
+  name: argocd-notifications-controller
 spec:
-  replicas: 1
+  replicas: 0
   template:
     spec:
       containers:

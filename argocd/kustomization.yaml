@@ -45,3 +45,7 @@ patches:
   target:
     kind: StatefulSet
     name: argocd-application-controller
+- path: argocd-secret.yml
+  target:
+    kind: Secret
+    name: argocd-secret
