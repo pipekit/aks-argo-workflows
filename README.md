@@ -12,7 +12,6 @@ kubectl config current-context
 The following commands may break your cluster if you have existing data in there:
 ```bash
 kubectl create namespace argocd
-cd argocd
 kustomize build argocd | kubectl apply -f -
 ```
 
