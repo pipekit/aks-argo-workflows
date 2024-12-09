@@ -10,7 +10,7 @@ spec:
     namespace: nats
     server: 'https://kubernetes.default.svc'
   source:
-    path: argocd
+    path: nats
     repoURL: 'https://github.com/pipekit/aks-argo-workflows.git'
     targetRevision: HEAD
   project: default
