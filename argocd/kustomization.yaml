@@ -6,6 +6,7 @@ resources:
 - github.com/argoproj/argo-cd/manifests/cluster-install?ref=v2.13.1
 - app-of-apps.yml
 - git-repo.yaml
+- project.yml
 
 patches:
 - path: argocd-cm.yml
