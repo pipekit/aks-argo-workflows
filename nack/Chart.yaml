@@ -1,0 +1,8 @@
+apiVersion: v2
+name: nack
+version: 0.0.1
+
+dependencies:
+- name: nack
+  version: 0.27.0
+  repository: https://nats-io.github.io/k8s/helm/charts/
