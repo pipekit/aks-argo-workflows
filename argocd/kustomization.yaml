@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+
+resources:
+- github.com/argoproj/argo-cd/manifests/cluster-install?ref=v2.13.1
+- app-of-apps.yml
+- git-repo.yaml
+
+patches:
+- path: argocd-cm.yml
+  target:
+    kind: ConfigMap
+    name: argocd-cm
+- path: argocd-rbac-cm.yaml
+  target:
+    kind: ConfigMap
+    name: argocd-rbac-cm
+- path: patch-applicationset-controller.yml
+  target:
+    kind: Deployment
+    name: argocd-applicationset-controller
+- path: patch-dex-server.yml
+  target:
+    kind: Deployment
+    name: argocd-dex-server
+- path: patch-redis.yml
+  target:
+    kind: Deployment
+    name: argocd-redis
+- path: patch-notifications-controller.yml
+  target:
+    kind: Deployment
+    name: argocd-notifications-controller
+- path: patch-repo-server.yml
+  target:
+    kind: Deployment
+    name: argocd-repo-server
+- path: patch-server.yml
+  target:
+    kind: Deployment
+    name: argocd-server
+- path: patch-application-controller.yml
+  target:
+    kind: StatefulSet
+    name: argocd-application-controller
