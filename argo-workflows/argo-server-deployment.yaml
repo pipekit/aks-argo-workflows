@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-server
+spec:
+  replicas: 1
+  template:
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - argo-server
+              topologyKey: topology.kubernetes.io/zone
+            weight: 100
+      containers:
+      - args:
+        - server
+        - --auth-mode=server
+        name: argo-server
+        env:
+          - name: FIRST_TIME_USER_MODAL
+            value: "false"
+          - name: FEEDBACK_MODAL
+            value: "false"
+          - name: NEW_VERSION_MODAL
+            value: "false"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 200Mi
