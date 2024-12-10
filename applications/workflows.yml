@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    argocd.argoproj.io/manifest-generate-paths: .
+  name: workflows
+  namespace: argocd
+spec:
+  destination:
+    namespace: workflows
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: workflows
+    repoURL: 'https://github.com/pipekit/aks-argo-workflows.git'
+    targetRevision: HEAD
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - PrunePropagationPolicy=background
+      - CreateNamespace=true
