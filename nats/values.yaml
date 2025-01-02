@@ -108,7 +108,7 @@ nats:
         maxSize:
 
       memoryStore:
-        enabled: false
+        enabled: true
         # ensure that container has a sufficient memory limit greater than maxSize
         maxSize: 1Gi
 
