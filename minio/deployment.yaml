@@ -44,5 +44,3 @@ spec:
             memory: 512Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
-      nodeSelector:
-        nodegroup: arm-ondmd

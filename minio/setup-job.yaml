@@ -49,5 +49,3 @@ spec:
             - "pod"
             - "-lapp=minio"
             - "-n minio"
-      nodeSelector:
-        nodegroup: arm-spot
