@@ -28,7 +28,9 @@ spec:
         - name: MINIO_ROOT_USER
           value: "pipekit"
         - name: MINIO_ROOT_PASSWORD
-          value: "sup3rs3cr3tp4ssw0rd1"
+          value: "sup3rs3cr3tp4ssw0rd1xo"
+        - name: MINIO_BROWSER_LOGIN_ANIMATION
+          value: "off"
         image: minio/minio
         imagePullPolicy: Always
         name: minio
