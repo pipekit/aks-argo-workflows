@@ -1,0 +1,100 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: calc
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      inputs:
+        parameters:
+          - name: natsUrl
+          - name: calcName
+          - name: stream
+          - name: inputPath
+          - name: outputPath
+          - name: count
+          - name: stepMult
+      dag:
+        tasks:
+          - name: consumerCreate
+            templateRef:
+              name: consumer
+              template: create
+            arguments:
+              parameters:
+                - name: name
+                  value: "{{inputs.parameters.stream}}-{{inputs.parameters.calcName}}"
+                - name: stream
+                  value: "{{inputs.parameters.stream}}"
+                - name: subject
+                  value: "{{inputs.parameters.stream}}.{{inputs.parameters.calcName}}"
+          - name: dispatchCalc
+            template: dispatch
+            arguments:
+              parameters:
+                - name: natsUrl
+                  value: "{{inputs.parameters.natsUrl}}"
+                - name: subject
+                  value: "{{inputs.parameters.stream}}.{{inputs.parameters.calcName}}"
+                - name: inputPath
+                  value: "{{inputs.parameters.inputPath}}"
+                - name: outputPath
+                  value: "{{inputs.parameters.outputPath}}"
+                - name: stepMult
+                  value: "{{inputs.parameters.stepMult}}"
+                - name: count
+                  value: "{{inputs.parameters.count}}"
+            depends: consumerCreate
+          - name: waitCalc
+            template: wait
+            arguments:
+              parameters:
+                - name: natsUrl
+                  value: "{{inputs.parameters.natsUrl}}"
+                - name: stream
+                  value: "{{inputs.parameters.stream}}"
+                - name: consumer
+                  value: "{{inputs.parameters.stream}}-{{inputs.parameters.calcName}}"
+            depends: dispatchCalc
+          - name: consumerDelete
+            templateRef:
+              name: consumer
+              template: delete
+            arguments:
+              parameters:
+                - name: name
+                  value: "{{inputs.parameters.calcName}}"
+            depends: waitCalc
+    - name: dispatch
+      inputs:
+        parameters:
+          - name: natsUrl
+          - name: subject
+          - name: count
+          - name: stepMult
+          - name: inputPath
+          - name: outputPath
+      container:
+        image: joibel/nats-dispatch:latest
+        imagePullPolicy: Always
+        args:
+          - "{{inputs.parameters.natsUrl}}"
+          - "{{inputs.parameters.subject}}"
+          - "{{inputs.parameters.count}}"
+          - "{{inputs.parameters.stepMult}}"
+          - "{{inputs.parameters.inputPath}}"
+          - "{{inputs.parameters.outputPath}}"
+    - name: wait
+      inputs:
+        parameters:
+          - name: natsUrl
+          - name: stream
+          - name: consumer
+      container:
+        image: joibel/nats-wait:latest
+        imagePullPolicy: Always
+        args:
+          - "{{inputs.parameters.natsUrl}}"
+          - "{{inputs.parameters.stream}}"
+          - "{{inputs.parameters.consumer}}"

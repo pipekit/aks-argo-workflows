@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: calcengine
+spec:
+  templates:
+    - name: create
+      inputs:
+        parameters:
+          - name: prefix
+          - name: natsUrl
+          - name: s3Url
+          - name: s3Id
+          - name: s3AccessKey
+          - name: s3Bucket
+      resource:
+        action: create
+        setOwnerReference: true
+        manifest: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{inputs.parameters.prefix}}-calc"
+          spec:
+            progressDeadlineSeconds: 600
+            replicas: 3
+            selector:
+              matchLabels:
+                app: "{{inputs.parameters.prefix}}-calc"
+            template:
+              metadata:
+                labels:
+                  app: "{{inputs.parameters.prefix}}-calc"
+              spec:
+                containers:
+                - name: consumer
+                  image: joibel/nats-consume:latest
+                  imagePullPolicy: Always
+                  args:
+                    - "{{inputs.parameters.natsUrl}}"
+                    - "{{inputs.parameters.prefix}}"
+                    - "{{inputs.parameters.s3Url}}"
+                    - "{{inputs.parameters.s3Id}}"
+                    - "{{inputs.parameters.s3AccessKey}}"
+                    - "{{inputs.parameters.s3Bucket}}"
+    - name: delete
+      inputs:
+        parameters:
+          - name: prefix
+      resource:
+        action: delete
+        setOwnerReference: true
+        manifest: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{inputs.parameters.prefix}}-calc"

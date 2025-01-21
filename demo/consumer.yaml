@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: consumer
+spec:
+  templates:
+    - name: create
+      inputs:
+        parameters:
+          - name: name
+          - name: stream
+          - name: subject
+      resource:
+        action: create
+        setOwnerReference: true
+        manifest: |
+          apiVersion: jetstream.nats.io/v1beta2
+          kind: Consumer
+          metadata:
+            name: "{{inputs.parameters.name}}"
+          spec:
+            streamName: "{{inputs.parameters.stream}}"
+            durableName: "{{inputs.parameters.name}}"
+            deliverPolicy: all
+            filterSubject: "{{inputs.parameters.subject}}"
+            maxDeliver: 20
+            ackPolicy: explicit
+    - name: delete
+      inputs:
+        parameters:
+          - name: name
+      resource:
+        action: delete
+        manifest: |
+          apiVersion: jetstream.nats.io/v1beta2
+          kind: Consumer
+          metadata:
+            name: "{{inputs.parameters.name}}"

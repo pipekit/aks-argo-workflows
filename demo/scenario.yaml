@@ -1,0 +1,130 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: scenario
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      inputs:
+        parameters:
+          - name: natsUrl
+          - name: scenario
+          - name: start
+          - name: id
+          - name: stream
+          - name: s3Url
+          - name: s3Id
+          - name: s3AccessKey
+          - name: s3Bucket
+          - name: s3PathPrefix
+          - name: calcsPerScenario
+      dag:
+        tasks:
+          - name: report1
+            templateRef:
+              name: report1
+              template: main
+          - name: create-data
+            template: create
+            arguments:
+              parameters:
+                - name: s3Url
+                  value: "{{inputs.parameters.s3Url}}"
+                - name: s3Id
+                  value: "{{inputs.parameters.s3Id}}"
+                - name: s3AccessKey
+                  value: "{{inputs.parameters.s3AccessKey}}"
+                - name: s3Bucket
+                  value: "{{inputs.parameters.s3Bucket}}"
+                - name: s3Path
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/input"
+                - name: start
+                  value: "{{inputs.parameters.start}}"
+                - name: count
+                  value: "{{inputs.parameters.calcsPerScenario}}"
+          - name: calc1
+            templateRef:
+              name: calc
+              template: main
+            arguments:
+              parameters:
+                - name: natsUrl
+                  value: "{{inputs.parameters.natsUrl}}"
+                - name: calcName
+                  value: "{{inputs.parameters.scenario}}-a"
+                  # value: "{{=sprig.cat(inputs.parameters['scenario'],'a')}}"
+                - name: stream
+                  value: "{{inputs.parameters.stream}}"
+                - name: inputPath
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/input"
+                - name: outputPath
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/out-a"
+                - name: stepMult
+                  value: "10"
+                - name: count
+                  value: "{{inputs.parameters.calcsPerScenario}}"
+            depends: create-data && report1
+          - name: calc2
+            templateRef:
+              name: calc
+              template: main
+            arguments:
+              parameters:
+                - name: natsUrl
+                  value: "{{inputs.parameters.natsUrl}}"
+                - name: calcName
+                  value: "{{inputs.parameters.scenario}}-b"
+                - name: stream
+                  value: "{{inputs.parameters.stream}}"
+                - name: inputPath
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/out-a"
+                - name: outputPath
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/out-b"
+                - name: stepMult
+                  value: "3"
+                - name: count
+                  value: "{{inputs.parameters.calcsPerScenario}}"
+            depends: calc1
+          - name: calc3
+            templateRef:
+              name: calc
+              template: main
+            arguments:
+              parameters:
+                - name: natsUrl
+                  value: "{{inputs.parameters.natsUrl}}"
+                - name: calcName
+                  value: "{{inputs.parameters.scenario}}-c"
+                - name: stream
+                  value: "{{inputs.parameters.stream}}"
+                - name: inputPath
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/out-b"
+                - name: outputPath
+                  value: "{{inputs.parameters.s3PathPrefix}}/{{inputs.parameters.id}}/output"
+                - name: stepMult
+                  value: "9"
+                - name: count
+                  value: "{{inputs.parameters.calcsPerScenario}}"
+            depends: calc2
+    - name: create
+      inputs:
+        parameters:
+          - name: s3Url
+          - name: s3Id
+          - name: s3AccessKey
+          - name: s3Bucket
+          - name: s3Path
+          - name: start
+          - name: count
+      container:
+        image: joibel/nats-create:latest
+        imagePullPolicy: Always
+        args:
+          - "{{inputs.parameters.s3Url}}"
+          - "{{inputs.parameters.s3Id}}"
+          - "{{inputs.parameters.s3AccessKey}}"
+          - "{{inputs.parameters.s3Bucket}}"
+          - "{{inputs.parameters.s3Path}}"
+          - "{{inputs.parameters.start}}"
+          - "{{inputs.parameters.count}}"

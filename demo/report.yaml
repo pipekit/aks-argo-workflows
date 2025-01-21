@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: report1
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      containerSet:
+        containers:
+          - name: a
+            image: argoproj/argosay:v2
+          - name: b
+            image: argoproj/argosay:v2
+            dependencies: ["a"]
+          - name: c
+            image: argoproj/argosay:v2
+            dependencies: ["a"]
+          - name: d
+            image: argoproj/argosay:v2
+            dependencies: ["b"]
+          - name: e
+            image: argoproj/argosay:v2
+            dependencies: ["c", "d"]

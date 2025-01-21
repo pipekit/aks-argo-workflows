@@ -1,0 +1,129 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: fanout
+spec:
+  entrypoint: main
+  onExit: exit-handler
+  arguments:
+    parameters:
+      - name: natsUrl
+        value: "nats.nats.svc.cluster.local:4222"
+      - name: numScenarios
+        value: "3"
+      - name: stream
+        value: "{{workflow.name}}"
+      - name: s3PathPrefix
+        value: "{{workflow.name}}"
+      - name: s3Url
+        value: "http://minio.minio.svc.cluster.local:9000"
+      - name: s3Id
+        value: "pipekit"
+      - name: s3AccessKey
+        value: "sup3rs3cr3tp4ssw0rd1"
+      - name: s3Bucket
+        value: data
+      - name: calcsPerScenario
+        value: "600"
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: spinup
+            templateRef:
+              name: calcengine
+              template: create
+            arguments:
+              parameters:
+                - name: prefix
+                  value: "{{workflow.parameters.stream}}"
+                - name: natsUrl
+                  value: "{{workflow.parameters.natsUrl}}"
+                - name: s3Url
+                  value: "{{workflow.parameters.s3Url}}"
+                - name: s3Id
+                  value: "{{workflow.parameters.s3Id}}"
+                - name: s3AccessKey
+                  value: "{{workflow.parameters.s3AccessKey}}"
+                - name: s3Bucket
+                  value: "{{workflow.parameters.s3Bucket}}"
+          - name: stream
+            templateRef:
+              name: stream
+              template: create
+            arguments:
+              parameters:
+                - name: stream
+                  value: "{{workflow.parameters.stream}}"
+          - name: split
+            template: split
+            arguments:
+              parameters:
+                - name: numScenarios
+                  value: "{{workflow.parameters.numScenarios}}"
+          - name: scenario
+            templateRef:
+              name: scenario
+              template: main
+            arguments:
+              parameters:
+                - name: scenario
+                  value: "{{item.scenario}}"
+                - name: id
+                  value: "{{item.id}}"
+                - name: start
+                  value: "{{item.start}}"
+                - name: calcsPerScenario
+                  value: "{{workflow.parameters.calcsPerScenario}}"
+                - name: stream
+                  value: "{{workflow.parameters.stream}}"
+                - name: natsUrl
+                  value: "{{workflow.parameters.natsUrl}}"
+                - name: s3Url
+                  value: "{{workflow.parameters.s3Url}}"
+                - name: s3Id
+                  value: "{{workflow.parameters.s3Id}}"
+                - name: s3AccessKey
+                  value: "{{workflow.parameters.s3AccessKey}}"
+                - name: s3Bucket
+                  value: "{{workflow.parameters.s3Bucket}}"
+                - name: s3PathPrefix
+                  value: "{{workflow.parameters.s3PathPrefix}}"
+            withParam: '{{tasks.split.outputs.result}}'
+            depends: spinup && stream && split
+    - name: split
+      inputs:
+        parameters:
+          - name: numScenarios
+      script:
+        image: python:alpine3.6
+        command:
+          - python
+        source: |
+          import json
+          import sys
+          import uuid
+          import random
+          partIds = list()
+          for scenario in range({{inputs.parameters.numScenarios}}):
+              partIds.append(dict(scenario=scenario, id=str(uuid.uuid4()), start=random.randint(1,10000)))
+          json.dump(partIds, sys.stdout)
+    - name: exit-handler
+      dag:
+        tasks:
+          - name: spindown
+            templateRef:
+              name: calcengine
+              template: delete
+            arguments:
+              parameters:
+                - name: prefix
+                  value: "{{workflow.parameters.stream}}"
+          - name: stream
+            templateRef:
+              name: stream
+              template: delete
+            arguments:
+              parameters:
+                - name: stream
+                  value: "{{workflow.parameters.stream}}"
